@@ -1,0 +1,117 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="shared-icons.html">
+
+<link rel="lazy-import" href="views/cards-list-view.html">
+<link rel="lazy-import" href="views/create-card-view.html">
+<link rel="lazy-import" href="views/error-view.html">
+
+<dom-module id="cards-manager">
+  <template>
+    <style>
+      :host {
+        --app-primary-color: #4285f4;
+        --app-secondary-color: black;
+
+        display: block;
+      }
+
+      app-header {
+        color: #fff;
+        background-color: var(--app-primary-color);
+      }
+
+    </style>
+
+    <app-location
+        route="{{route}}"
+        url-space-regex="^[[rootPath]]">
+    </app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="[[rootPath]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}">
+    </app-route>
+
+    <!-- Main content -->
+
+    <app-header slot="header" condenses reveals effects="waterfall">
+      <app-toolbar>
+        <div main-title>Cards Manager</div>
+      </app-toolbar>
+    </app-header>
+
+    <iron-pages
+        selected="[[page]]"
+        attr-for-selected="name"
+        fallback-selection="view404"
+        role="main">
+
+      <cards-list-view name="cards-list"></cards-list-view>
+      <create-card-view name="create-card"></create-card-view>
+      <error-view name="error"></error-view>
+
+    </iron-pages>
+
+    <a name="cards-list" href="[[rootPath]]cards-list">Cards List</a>
+    <a name="create-card" href="[[rootPath]]create-card">Create Card</a>
+
+  </template>
+
+  <script>
+    class CardsManager extends Polymer.Element {
+      static get is() { return 'cards-manager'; }
+
+      static get properties() {
+        return {
+          page: {
+            type: String,
+            reflectToAttribute: true,
+            observer: '_pageChanged',
+          },
+          routeData: Object,
+          subroute: String,
+          // This shouldn't be neccessary, but the Analyzer isn't picking up
+          // Polymer.Element#rootPath
+          rootPath: String,
+        };
+      }
+
+      static get observers() {
+        return [
+          '_routePageChanged(routeData.page)',
+        ];
+      }
+
+      _routePageChanged(page) {
+        // If no page was found in the route data, page will be an empty string.
+        // Default to 'card-list-view' in that case.
+        this.page = page || 'cards-list';
+      }
+
+      _pageChanged(page) {
+        // Load page import on demand. Show 404 page if fails
+        var resolvedPageUrl = this.resolveUrl('views/' + page + '-view.html');
+        Polymer.importHref(
+            resolvedPageUrl,
+            null,
+            this._showPage404.bind(this),
+            true);
+      }
+
+      _showPage404() {
+        this.page = 'error';
+      }
+    }
+
+    window.customElements.define(CardsManager.is, CardsManager);
+  </script>
+</dom-module>
